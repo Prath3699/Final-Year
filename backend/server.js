@@ -13,12 +13,17 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 app.use(express.json());
 
-app.use(cors("*"));
+app.use(cors({ origin: "*" }));
 dbConnect();
+
+// JWT auth guard for all /api routes except the public ones listed in the middleware
+app.use("/api", auth);
 
 app.use("/api/appointment", appointmentRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/patients", patientRoutes);
+// alias: the frontend calls "/api/patient/..." (singular)
+app.use("/api/patient", patientRoutes);
 app.use("/api/disease", diseaseRoutes);
 app.use("/api/login", loginRoutes);
 app.use("/api/reports", reportRoutes);

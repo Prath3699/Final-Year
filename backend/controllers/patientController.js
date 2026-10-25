@@ -5,9 +5,15 @@ const bcrypt = require("bcryptjs");
 const createPatient = async (req, res) => {
   const { name, email, phone, gender, password, bloodGroup, age, address } =
     req.body;
-  console.log(req.body);
 
   try {
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "name, email and password are required",
+      });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const patient = await Patient.create({
@@ -21,20 +27,27 @@ const createPatient = async (req, res) => {
       age: age,
     });
     if (!patient) {
-      return res.json(
-        { success: false, message: "Failed, Try again later!" },
-        { status: 500 }
-      );
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed, Try again later!" });
     }
-    console.log(patient);
 
-    return res.json(
-      { success: true, message: "Created Successfully", id: patient._id },
-      { status: 200 }
-    );
+    return res.status(201).json({
+      success: true,
+      message: "Created Successfully",
+      id: patient._id,
+    });
   } catch (error) {
     console.log(error);
-    return res.json({ success: true, message: error.message }, { status: 500 });
+    // duplicate key error -> 409 with a clear message
+    if (error.code === 11000) {
+      return res
+        .status(409)
+        .json({ success: false, message: "Email already exists" });
+    }
+    return res
+      .status(500)
+      .json({ success: false, message: error.message });
   }
 };
 
@@ -59,25 +72,22 @@ const getPatientById = async (req, res) => {
 
 const deletePatient = async (req, res) => {
   const _id = req.params.id;
-  console.log(req.body);
   try {
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res.status(400).json({ success: false, message: "Invalid ID" });
+    }
     const patient = await Patient.findByIdAndDelete(_id);
     if (!patient) {
-      return res.json(
-        { success: false, message: "Failed, Try again later!" },
-        { status: 500 }
-      );
+      return res
+        .status(404)
+        .json({ success: false, message: "Patient not found" });
     }
-    return res.json(
-      { success: true, message: "Patient Deleted Successfully" },
-      { status: 200 }
-    );
+    return res
+      .status(200)
+      .json({ success: true, message: "Patient Deleted Successfully" });
   } catch (error) {
     console.log(error);
-    return res.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
