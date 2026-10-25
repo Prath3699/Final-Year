@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Doctor = require("../model/doctorSchema");
+const Unavailability = require("../model/unavailablitySchema");
 const bcrypt = require("bcryptjs");
 
 // add Doctor
@@ -76,9 +77,9 @@ const addDoctorSlot = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Doctor not found." });
     }
-    //duplicate slot
+    //duplicate slot: same day with overlapping start/end time
     const duplicate = doctor.availableSlots.find(
-      (slot) => (slot.day === day && slot.from === from) || slot.to === to
+      (slot) => slot.day === day && (slot.from === from || slot.to === to)
     );
     if (duplicate) {
       return res

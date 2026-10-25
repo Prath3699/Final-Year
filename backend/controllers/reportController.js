@@ -88,18 +88,23 @@ const deleteReport = async (req, res) => {
     }
     const report = await Report.findByIdAndDelete(id);
 
-    const patient=await Patient.findById(report.patientId);
-    const appointment=await Appointment.findById(report.appointmentId);
-    patient.reports.pull(report._id);
-    appointment.report=null;
-    await patient.save();
-    await appointment.save();
-
     if (!report) {
       return res
         .status(404)
         .json({ success: false, message: "Report not found" });
     }
+
+    const patient = await Patient.findById(report.patientId);
+    const appointment = await Appointment.findById(report.appointmentId);
+    if (patient) {
+      patient.reports.pull(report._id);
+      await patient.save();
+    }
+    if (appointment) {
+      appointment.report = null;
+      await appointment.save();
+    }
+
     return res
       .status(200)
       .json({ success: true, message: "Report deleted successfully" });

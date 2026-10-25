@@ -51,8 +51,14 @@ const bookAppointment = async (req, res) => {
     }
 
     // Convert doctor's slot times to moments for comparison
-    const slotFrom = moment(availableSlot.from);
-    const slotTo = moment(availableSlot.to);
+    // (stored as "HH:mm" strings, so they must be parsed with an explicit format)
+    const dayBase = moment(appointmentDate).startOf("day");
+    const slotFrom = dayBase.clone()
+      .hour(moment(availableSlot.from, "HH:mm").hour())
+      .minute(moment(availableSlot.from, "HH:mm").minute());
+    const slotTo = dayBase.clone()
+      .hour(moment(availableSlot.to, "HH:mm").hour())
+      .minute(moment(availableSlot.to, "HH:mm").minute());
 
     // Check if requested time is within doctor's working hours
     if (
@@ -167,9 +173,9 @@ const getAvailableSlots = async (req, res) => {
       });
     }
 
-    // 3. Parse working hours
-    const slotStart = moment(availableSlot.from);
-    const slotEnd = moment(availableSlot.to);
+    // 3. Parse working hours (stored as "HH:mm" strings)
+    const slotStart = moment(availableSlot.from, "HH:mm");
+    const slotEnd = moment(availableSlot.to, "HH:mm");
 
     const workDayStart = requestedDate
       .clone()
@@ -308,23 +314,21 @@ const getAppointmentById = async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) {
-      return res.status(500).json({ message: "Invalid Appointment" });
+      return res.status(400).json({ message: "Invalid Appointment" });
     }
 
     const appointment = await Appointment.findById(id);
 
     if (!appointment) {
-      return res.status(409).json({ message: "Appointment not available" });
+      return res.status(404).json({ message: "Appointment not available" });
     }
 
-    // Create new appointment
-
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
       appointment,
     });
   } catch (error) {
-    console.error("Error booking appointment:", error);
+    console.error("Error fetching appointment:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
